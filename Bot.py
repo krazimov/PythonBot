@@ -1,6 +1,5 @@
 from time import sleep
 
-import Land
 import Sea
 
 

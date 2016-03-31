@@ -10,7 +10,6 @@ import numpy as np
 import Image
 import cv2 as cv
 
-import Sea
 
 # Globals
 # ------------------
@@ -183,7 +182,6 @@ def winList():
 
 
 if __name__ == '__main__':
-    Sea.getBox()
 
     '''
 

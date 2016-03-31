@@ -1,4 +1,5 @@
 from time import sleep
+
 import Vision
 import Movement
 
@@ -29,10 +30,18 @@ class Color:
 
 
 def getBox():
-    ref = Vision.cv.imread(Ref.ammo, 1)
     screen = Vision.getCv()
-    # Vision.showImg(screen)
-    pos = Vision.match(screen, ref)
+    handle = Vision.getHandle(screen)
+
+    # downsample - threshold
+    img = Vision.getBmp(handle)
+    Vision.showImg(img)
+    # ref = Vision.cv.imread(Ref.ammo, 1)
+    # pos = Vision.match(screen, ref)
+
+    # downsample - threshold
+    img = Vision.getBmp(screen)
+    Vision.showImg(img)
     # find box
     # simplify
     # get edge
@@ -82,6 +91,4 @@ def navigate():
     return True
 
 if __name__ == '__main__':
-    getBox()
-
-    # navigate()
+    pass
