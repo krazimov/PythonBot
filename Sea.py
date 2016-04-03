@@ -30,18 +30,14 @@ class Color:
 
 
 def getBox():
-    screen = Vision.getCv()
-    handle = Vision.getHandle(screen)
+    img = Vision.getCv(False, True)
+    img = Vision.downsample()
 
     # downsample - threshold
-    img = Vision.getBmp(handle)
     Vision.showImg(img)
     # ref = Vision.cv.imread(Ref.ammo, 1)
     # pos = Vision.match(screen, ref)
 
-    # downsample - threshold
-    img = Vision.getBmp(screen)
-    Vision.showImg(img)
     # find box
     # simplify
     # get edge
@@ -91,4 +87,5 @@ def navigate():
     return True
 
 if __name__ == '__main__':
+    getBox()
     pass

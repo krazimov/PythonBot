@@ -6,6 +6,7 @@ import Sea
 # *** Main ***
 def main():
     print 'Bot start'
+    Sea.getBox()
     print 'Bot end'
 
 if __name__ == '__main__':

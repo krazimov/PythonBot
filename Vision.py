@@ -140,9 +140,21 @@ def showImg(img):
     return True
 
 
-def downsample(img):
-    cv.pyrDown(img, sample, (500, 500))
-    showImg(img)
+def lut(img, colors=8):
+    Z = img.reshape((-1, 3))
+    Z = np.float32(Z)
+
+    # define criteria, number of clusters(K) and apply kmeans()
+    term = cv.TERM_CRITERIA_EPS + cv.TERM_CRITERIA_MAX_ITER
+    criteria = (term, 10, 1.0)
+
+    dst = cv.kmeans(Z, colors, None, criteria, 10, cv.KMEANS_RANDOM_CENTERS)
+    center = dst[2]
+    # Now convert back into uint8, and make original image
+    center = np.uint8(center)
+    res = center[dst[1].flatten()]
+    res2 = res.reshape((img.shape))
+    showImg(res2)
     pass
 
 
@@ -182,6 +194,9 @@ def winList():
 
 
 if __name__ == '__main__':
+    img = getCv()
+    result = lut(img)
+    showImg(lut)
 
     '''
 
@@ -228,3 +243,5 @@ if __name__ == '__main__':
     box = np.int0(box)
     cv2.drawContours(img, [box], 0, (0, 0, 255), 2)
     '''
+
+
