@@ -10,7 +10,6 @@ import numpy as np
 import Image
 import cv2 as cv
 
-
 # Globals
 # ------------------
 
