@@ -13,10 +13,11 @@ import cv2 as cv
 # Globals
 # ------------------
 
-windowName = "Nox"
-ColorReduct = 32
+defaultWin = "Nox App Player"
+cv.setUseOptimized(True)
 
 
+# Windows API functions
 def getHandle(name=None):
     if name is None:
         return wgui.GetDesktopWindow()  # current window
@@ -24,9 +25,9 @@ def getHandle(name=None):
 
 
 # gets a Device Context from given handle, window name xor default window
-def getDc(handle=None, windowName=None):
+def getDc(handle=None, name=None):
     if handle is None:
-        handle = getHandle(windowName)
+        handle = getHandle(name)
 
     winContext = wgui.GetDC(handle)
     devContext = win32ui.CreateDCFromHandle(winContext)
@@ -37,27 +38,22 @@ def getDc(handle=None, windowName=None):
 
 
 # gets bmp image from device context or handle
-def getBmp(handle=None, dcTuple=None, Box=None):
+def getBmp(handle=None, dcTuple=None, box=None):
 
     if handle is None:
         handle = getHandle()
     if dcTuple is None:
         localDC = True
         dcTuple = getDc(handle)
-
-    left, up, right, down = wgui.GetWindowRect(handle) if Box is None else Box
-
+    left, up, right, down = wgui.GetWindowRect(handle) if box is None else box
     height, width = down - up, right - left
     size = width, height
-
     bmp = win32ui.CreateBitmap()
     bmp.CreateCompatibleBitmap(dcTuple[1], width, height)
     dcTuple[2].SelectObject(bmp)
-    dcTuple[2].BitBlt((0, 0), size, dcTuple[1], (0, 0), win32con.SRCCOPY)
-
+    dcTuple[2].BitBlt((0, 0), size, dcTuple[1], (left, up), win32con.SRCCOPY)
     if localDC:
         dropDc(handle, dcTuple)
-
     return bmp
 
 
@@ -86,93 +82,14 @@ def getPixel(x, y, handle=None):
     return rgb
 
 
-def getRgb(long):  # gets the rgb code from a long formatted number
-    r, g, b = long & 255, (long >> 8) & 255, (long >> 16) & 255
-    return int(r), int(g), int(b)
+def getBox(handle=None, name=None, relative=False):
+    if not handle:
+        handle = getHandle(name)
 
-
-def getCv(bmp=False, color=False):
-    if bmp is False:
-        bmp = getBmp()
-    height = bmp.GetInfo()['bmHeight']
-    width = bmp.GetInfo()['bmWidth']
-    size = bmp.GetInfo()['bmWidth'], bmp.GetInfo()['bmHeight']
-    str = bmpString(bmp)
-    im = Image.frombuffer('RGB', size, str, 'raw', 'BGRX', 0, 1)
-    img = cv.cvtColor(np.array(im), cv.COLOR_RGB2BGR)
-    if color is False:
-        img = cv.cvtColor(img, cv.COLOR_BGR2GRAY)
-    return img
-
-
-def match(img, goal):
-    goal = cv.cvtColor(goal, cv.COLOR_BGR2GRAY)
-    w, h = goal.shape[::-1]
-
-    img = threshold(img)
-    goal = threshold(goal)
-
-    # img = cv.Laplacian(img, cv.CV_32F)
-    # goal = cv.Laplacian(goal, cv.CV_32F)
-
-    # All methods for comparison
-    meth = cv.TM_CCOEFF_NORMED  # cv.TM_CCOEFF
-    # meth = cv.TM_CCORR_NORMED  # cv.TM_CCORR
-    # meth = cv.TM_SQDIFF #  cv.TM_SQDIFF_NORMED  # Use minLoc
-
-    res = cv.matchTemplate(img, goal, meth)
-    minVal, maxVal, minLoc, maxLoc = cv.minMaxLoc(res)
-
-    cv.rectangle(img, maxLoc, (maxLoc[0] + w, maxLoc[1] + h), 200, 2)
-
-    # print maxVal
-    # print maxLoc
-
-    showImg(img)
-    return res
-
-
-def showImg(img):
-    cv.imshow("Bot img", img)
-    cv.waitKey(3000)
-    cv.destroyAllWindows()
-    return True
-
-
-def lut(img, colors=8):
-    Z = img.reshape((-1, 3))
-    Z = np.float32(Z)
-
-    # define criteria, number of clusters(K) and apply kmeans()
-    term = cv.TERM_CRITERIA_EPS + cv.TERM_CRITERIA_MAX_ITER
-    criteria = (term, 10, 1.0)
-
-    dst = cv.kmeans(Z, colors, None, criteria, 10, cv.KMEANS_RANDOM_CENTERS)
-    center = dst[2]
-    # Now convert back into uint8, and make original image
-    center = np.uint8(center)
-    res = center[dst[1].flatten()]
-    res2 = res.reshape((img.shape))
-    showImg(res2)
-    pass
-
-
-def threshold(img, block=3, C=3):
-    # blur = cv.medianBlur(img, 5)
-    blur = cv.GaussianBlur(img, (3, 3), 0)
-    gauss = cv.ADAPTIVE_THRESH_GAUSSIAN_C
-    thresh = cv.THRESH_BINARY
-    result = cv.adaptiveThreshold(blur, 255, gauss, thresh, block, C)
-
-    return result
-
-
-def bmpString(bmp):
-    return bmp.GetBitmapBits(True)
-
-
-def bmpTuple(bmp):
-    return bmp.GetBitmapBits(False)
+    if relative:
+        return wgui.GetClientRect(handle)
+    else:
+        return wgui.GetWindowRect(handle)
 
 
 def dropDc(handle, dcTuple):
@@ -182,23 +99,146 @@ def dropDc(handle, dcTuple):
     return True
 
 
-def winList():
+# Computer Vision functions
+def getCv(bmp=False, color=False, box=None, name=None):
+    if bmp is False:
+        if box:
+            bmp = getBmp(None, None, box)
+        elif name:
+            bmp = getBmp(None, None, None, name)
+        else:
+            bmp = getBmp()
+
+    width, height = bmp.GetInfo()['bmWidth'], bmp.GetInfo()['bmHeight']
+    size = width, height
+    str = bmpString(bmp)
+    im = Image.frombuffer('RGB', size, str, 'raw', 'BGRX', 0, 1)
+    img = cv.cvtColor(np.array(im), cv.COLOR_RGB2BGR)
+    if color is False:
+        img = cv.cvtColor(img, cv.COLOR_BGR2GRAY)
+    return img
+
+
+def showImg(img):
+    cv.imshow("Bot img", img)
+    cv.waitKey(3000)
+    cv.destroyAllWindows()
+    return True
+
+
+def match(img, goal):
+    goal = cv.cvtColor(goal, cv.COLOR_BGR2GRAY)
+    w, h = goal.shape[::-1]
+
+    img = threshold(img)
+    goal = threshold(goal)
+
+    # Also: cv.TM_CCORR_NORMED - cv.TM_SQDIFF_NORMED
+    res = cv.matchTemplate(img, goal, cv.TM_CCOEFF_NORMED)
+    minVal, maxVal, minLoc, maxLoc = cv.minMaxLoc(res)
+
+    cv.rectangle(img, maxLoc, (maxLoc[0] + w, maxLoc[1] + h), 200, 2)
+
+    showImg(img)
+    return res
+
+
+def threshold(img, block=11, C=2):
+    blur = cv.medianBlur(img, 5)
+    # blur = cv.GaussianBlur(img, (3, 3), 0)
+    gauss = cv.ADAPTIVE_THRESH_GAUSSIAN_C
+    thresh = cv.THRESH_BINARY
+    result = cv.adaptiveThreshold(blur, 255, gauss, thresh, block, C)
+
+    return result
+
+
+def colorReduce(img):
+
+    # __Slow as fuck:__
+    # from scipy.cluster.vq import kmeans, vq
+    # pixel = np.reshape(img, (img.shape[0] * img.shape[1], 3))
+    # centroids, _ = kmeans(pixel, 6)  # six colors will be found
+    # qnt, _ = vq(pixel, centroids)
+    # centersIdx = np.reshape(qnt, (img.shape[0], img.shape[1]))
+    # clustered = centroids[centersIdx]
+    # img = np.flipud(clustered)
+    #     Z = img.reshape((-1, 3))
+    # Z = np.float32(Z)
+    # C = (cv.TERM_CRITERIA_EPS + cv.TERM_CRITERIA_MAX_ITER, 10, 1.0)
+    # K = 2
+    # ret, lbl, cent = cv.kmeans(Z, K, None, C, 10, cv.KMEANS_RANDOM_CENTERS)
+    # cent = np.uint8(cent)
+    # res = cent[lbl.flatten()]
+    # res2 = res.reshape((img.shape))
+
+    return True
+
+
+# Misc functions
+def bmpString(bmp):
+    return bmp.GetBitmapBits(True)
+
+
+def bmpTuple(bmp):
+    return bmp.GetBitmapBits(False)
+
+
+def getRgb(long):  # gets the rgb code from a long formatted number
+    r, g, b = long & 255, (long >> 8) & 255, (long >> 16) & 255
+    return int(r), int(g), int(b)
+
+
+def winList(showImg=False):
+    print "---------"
+    print "Windows list"
+    print "---------"
+
     def winEnumHandler(handle, ctx):
         if wgui.IsWindowVisible(handle):
             print handle, wgui.GetWindowText(handle)
-            saveBmp(handle)
-    # win32gui.EnumChildWindows(hwnd, callback, None)
+            # wgui.BringWindowToTop(handle)
+            if showImg:
+                try:
+                    showImg(getCv(getBmp(handle), True))
+                except Exception, e:
+                    print e
     wgui.EnumWindows(winEnumHandler, None)
+    print "---------"
+    return True
+
+
+def winChilds(handle, img=False):
+    def childHandler(handle, ctx):
+        if wgui.IsWindowVisible(handle):
+            print handle, wgui.GetWindowText(handle)
+            if img:
+                try:
+                    imgs = getCv(getBmp(handle), True)
+                    showImg(imgs)
+                except Exception, e:
+                    print e
+
+    try:
+        wgui.EnumChildWindows(handle, childHandler, None)
+        pass
+    except Exception, e:
+        print e
     return True
 
 
 if __name__ == '__main__':
-    img = getCv()
-    result = lut(img)
-    showImg(lut)
-
+    # winList()
+    handle = getHandle(defaultWin)
+    wgui.SetForegroundWindow(handle)
+    bmp = getBmp(None, None, getBox(handle))
+    img = getCv(bmp)
+    img = threshold(img)
+    showImg(img)
+    pass
     '''
 
+    # wgui.BringWindowToTop(handle)
     # wgui.UpdateWindow(handle)
     # wgui.SetForegroundWindow(handle)
     # wgui.SetFocus(handle)
@@ -209,11 +249,9 @@ if __name__ == '__main__':
     # pos = wgui.GetWindowPlacement(handle)
 
     # OpenCV
-    cv.setUseOptimized(True)
     cv.rectangle(img, (384, 0), (510, 128), (0, 255, 0), 3)
     ball = img[280:340, 330:390]
     laplacian = cv.Laplacian(img, cv.CV_64F)
-    print img.shape
 
     # find contours
     ret, thrs = cv.threshold(img, 127, 255, 0)
@@ -226,21 +264,8 @@ if __name__ == '__main__':
     x, y, w, h = cv.boundingRect(cnt)
     extent = float(area)/(w*h)
 
-    # extreme points
-    leftmost = tuple(cnt[cnt[:, :, 0].argmin()][0])
-    rightmost = tuple(cnt[cnt[:, :, 0].argmax()][0])
-    topmost = tuple(cnt[cnt[:, :, 1].argmin()][0])
-    bottommost = tuple(cnt[cnt[:, :, 1].argmax()][0])
-
     # bounding rectangle
     x, y, w, h = cv.boundingRect(cnt)
     cv.rectangle(img, (x, y), (x+w, y+h), (0, 255, 0), 2)
 
-    # rotated rectangle
-    rect = cv2.minAreaRect(cnt)
-    box = cv2.boxPoints(rect)
-    box = np.int0(box)
-    cv2.drawContours(img, [box], 0, (0, 0, 255), 2)
     '''
-
-
