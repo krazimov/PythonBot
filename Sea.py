@@ -7,15 +7,14 @@ import Movement
 class Ref:
     folder = "Templates/Vikings/Sea/"
 
-    box = folder + "boxSea.png"
-    colo = folder + "coloSea.png"
-    raid = folder + "attackSea.png"
-    dist = folder + "distanceSea.png"
-    town = folder + "townNameSea.png"
-    ammo = folder + "ammoIcon.png"
-    slow = folder + "speed1Icon.png"
-    fair = folder + "speed2Icon.png"
-    fast = folder + "speed3Icon.png"
+    raid = folder + "attackSea.bmp"
+    dist = folder + "distanceSea.bmp"
+    town = folder + "townNameSea.bmp"
+    ammo = folder + "ammoIcon.bmp"
+    slow = folder + "speed1Icon.bmp"
+    fair = folder + "speed2Icon.bmp"
+    fast = folder + "speed3Icon.bmp"
+    push = folder + "row.bmp"
 
     pass
 
