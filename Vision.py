@@ -12,7 +12,8 @@ import cv2 as cv
 # Globals
 # ------------------
 
-defaultWin = "Nox App Player"
+# defaultWin = "Nox App Player"
+defaultWin = "Sea.png - Sublime Text (UNREGISTERED)"
 cv.setUseOptimized(True)
 
 
@@ -44,7 +45,7 @@ def getBmp(handle=None, dcTuple=None, box=None):
     if dcTuple is None:
         localDC = True
         dcTuple = getDc(handle)
-    left, up, right, down = wgui.GetWindowRect(handle) if box is None else box
+    left, up, right, down = box if box else wgui.GetWindowRect(handle)
     height, width = down - up, right - left
     size = width, height
     bmp = CreateBitmap()
@@ -84,21 +85,13 @@ def getPixel(x, y, handle=None):
 def getBox(handle=None, name=None, relative=False):
     if not handle:
         handle = getHandle(name)
-
+    wgui.SetForegroundWindow(handle)
     if relative:
         return wgui.GetClientRect(handle)
     else:
         return wgui.GetWindowRect(handle)
 
 
-def dropDc(handle, dcTuple):
-    dcTuple[2].DeleteDC()
-    dcTuple[1].DeleteDC()
-    wgui.ReleaseDC(handle, dcTuple[0])
-    return True
-
-
-# Computer Vision functions
 def getCv(bmp=False, color=False, box=None, name=None):
     if bmp is False:
         if box:
@@ -118,7 +111,14 @@ def getCv(bmp=False, color=False, box=None, name=None):
     return img
 
 
-def showImg(img):
+def dropDc(handle, dcTuple):
+    dcTuple[2].DeleteDC()
+    dcTuple[1].DeleteDC()
+    wgui.ReleaseDC(handle, dcTuple[0])
+    return True
+
+
+def show(img):
     cv.imshow("Bot img", img)
     cv.waitKey(3000)
     cv.destroyAllWindows()
@@ -162,7 +162,7 @@ def threshold(img, block=11, C=2):
     return result
 
 
-def colorReduce(img):
+def reduce(img):
 
     # __Slow as fuck:__
     # from scipy.cluster.vq import kmeans, vq
@@ -199,14 +199,11 @@ def getRgb(long):  # gets the rgb code from a long formatted number
 
 
 def winList(showImg=False):
-    print "---------"
-    print "Windows list"
-    print "---------"
+    print "---------\nWindows list\n---------"
 
     def winEnumHandler(handle, ctx):
         if wgui.IsWindowVisible(handle):
             print handle, wgui.GetWindowText(handle)
-            # wgui.BringWindowToTop(handle)
             if showImg:
                 try:
                     showImg(getCv(getBmp(handle), True))
@@ -227,23 +224,15 @@ def winChilds(handle, img=False):
                     showImg(imgs)
                 except Exception, e:
                     print e
-
     try:
         wgui.EnumChildWindows(handle, childHandler, None)
-        pass
     except Exception, e:
         print e
     return True
 
 
 if __name__ == '__main__':
-    # winList()
-    handle = getHandle(defaultWin)
-    wgui.SetForegroundWindow(handle)
-    bmp = getBmp(None, None, getBox(handle))
-    img = getCv(bmp)
-    img = threshold(img)
-    showImg(img)
+
     pass
     '''
 
