@@ -125,21 +125,31 @@ def showImg(img):
     return True
 
 
-def match(img, goal):
-    goal = cv.cvtColor(goal, cv.COLOR_BGR2GRAY)
-    w, h = goal.shape[::-1]
+def match(img, template):
+    w, h = template.shape[::-1]
+    res = cv.matchTemplate(img, template, cv.TM_CCOEFF_NORMED)
 
-    img = threshold(img)
-    goal = threshold(goal)
+    _, _, _, res = cv.minMaxLoc(res)
+    box = (res[0], res[1], res[0] + w, res[1] + h)
+    point = (box[0] + (w / 2), box[1] + (h / 2))
+    return point, box
 
-    # Also: cv.TM_CCORR_NORMED - cv.TM_SQDIFF_NORMED
-    res = cv.matchTemplate(img, goal, cv.TM_CCOEFF_NORMED)
-    minVal, maxVal, minLoc, maxLoc = cv.minMaxLoc(res)
 
-    cv.rectangle(img, maxLoc, (maxLoc[0] + w, maxLoc[1] + h), 200, 2)
-
-    showImg(img)
+def matchAll(img, template, threshold=0.8):
+    w, h = template.shape[::-1]
+    res = cv.matchTemplate(img, template, cv.TM_CCOEFF_NORMED)
+    loc = np.where(res >= threshold)
+    res = []
+    for pt in zip(*loc[::-1]):
+        res.append(pt)
     return res
+
+
+def draw(img, box):
+    if len(box) == 2:  # point
+        box = box[0], box[1], box[0] + 2, box[1] + 2
+    cv.rectangle(img, (box[0], box[1]), (box[2], box[3]), 255, 4)
+    return img
 
 
 def threshold(img, block=11, C=2):
