@@ -1,5 +1,6 @@
 from time import sleep
 
+# import Vision
 import Vision
 import Movement
 
@@ -16,47 +17,66 @@ class Ref:
     fast = folder + "speed3Icon.bmp"
     push = folder + "row.bmp"
 
+    boostBox = -760, - 60, - 40, + 110
+
+
+# Constants
+winName = "Sea.png - Sublime Text (UNREGISTERED)"
+
+
+def sail():
+    # get row position
+    pos = Vision.getBox(None, winName)
+    img = Vision.getCv(Vision.getBmp(None, None, pos), True)
+    imgbc = Vision.getCv(Vision.getBmp(None, None, pos), False)
+    rowBtn = rowPos(imgbc, (pos[0], pos[1]))
+    target, box = buffPos(rowBtn, (pos[0], pos[1]))
+    print target, box
+    img = Vision.draw(img, box)
+    Vision.show(img)
+    # Find stable bar
+    # point = list(point)
+    # point[0] = point[0] + Pos.offsetRow
+
+    # get box indicators
+    Vision.show(img)
+
     pass
 
 
-class Coord:
+def buffPos(ref, offset=False):
+    box = Ref.boostBox
+    box = ref[0] + box[0], ref[1] + box[1], ref[0] + box[2], ref[1] + box[3]
+    img = Vision.getCv(Vision.getBmp(None, None, box))
+    fast = Vision.cv.imread(Ref.fast, 0)
+    point, pos = Vision.match(img, fast)
+
+    if offset:
+        px = box[0] - offset[0]
+        py = box[1] - offset[1]
+        point = point[0] + px, point[1] + py
+        pos = pos[0] + px, pos[1] + py, pos[2] + px, pos[3] + py
+    return point, pos
+
+
+def rowPos(img, offset=False):
+    push = Vision.cv.imread(Ref.push, 0)
+    point, _ = Vision.match(img, push)
+    if offset:
+        return (point[0] + offset[0], point[1] + offset[1])
+    return point
+
+
+def rowTo():
     pass
-
-
-class Color:
-    bar = 255, 255, 255
-    pass
-
-
-def getBox():
-    img = Vision.getCv(False, True)
-    img = Vision.downsample()
-
-    # downsample - threshold
-    Vision.showImg(img)
-    # ref = Vision.cv.imread(Ref.ammo, 1)
-    # pos = Vision.match(screen, ref)
-
-    # find box
-    # simplify
-    # get edge
-
-    # template
-
-    return False
-
-
-def getBonus(img):
-    position = ""
-    return position
 
 
 def navigate():
-    bonus = getBonus()
+    bonus = buffPos()
     while not bonus:  # Waiting for bonuses to appear
         sleep(1)
         print "Waiting bonus bar"
-        bonus = getBonus()
+        bonus = buffPos()
     print "bonuses found {}".format(bonus)
 
     barPos = getBar()
@@ -86,5 +106,5 @@ def navigate():
     return True
 
 if __name__ == '__main__':
-    getBox()
+    sail()
     pass
