@@ -1,13 +1,12 @@
 # import os
 # import win32api
 import win32con
-import win32ui
+from win32ui import CreateDCFromHandle, CreateBitmap
 import win32gui as wgui
 
 from time import sleep, time
-# from collections import deque
+from Image import frombuffer
 import numpy as np
-import Image
 import cv2 as cv
 
 # Globals
@@ -30,7 +29,7 @@ def getDc(handle=None, name=None):
         handle = getHandle(name)
 
     winContext = wgui.GetDC(handle)
-    devContext = win32ui.CreateDCFromHandle(winContext)
+    devContext = CreateDCFromHandle(winContext)
     comContext = devContext.CreateCompatibleDC()
 
     # Remember to release Dc afterwards!
@@ -48,7 +47,7 @@ def getBmp(handle=None, dcTuple=None, box=None):
     left, up, right, down = wgui.GetWindowRect(handle) if box is None else box
     height, width = down - up, right - left
     size = width, height
-    bmp = win32ui.CreateBitmap()
+    bmp = CreateBitmap()
     bmp.CreateCompatibleBitmap(dcTuple[1], width, height)
     dcTuple[2].SelectObject(bmp)
     dcTuple[2].BitBlt((0, 0), size, dcTuple[1], (left, up), win32con.SRCCOPY)
@@ -112,7 +111,7 @@ def getCv(bmp=False, color=False, box=None, name=None):
     width, height = bmp.GetInfo()['bmWidth'], bmp.GetInfo()['bmHeight']
     size = width, height
     str = bmpString(bmp)
-    im = Image.frombuffer('RGB', size, str, 'raw', 'BGRX', 0, 1)
+    im = frombuffer('RGB', size, str, 'raw', 'BGRX', 0, 1)
     img = cv.cvtColor(np.array(im), cv.COLOR_RGB2BGR)
     if color is False:
         img = cv.cvtColor(img, cv.COLOR_BGR2GRAY)
