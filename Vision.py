@@ -38,13 +38,15 @@ def getDc(handle=None, name=None):
 
 
 # gets bmp image from device context or handle
-def getBmp(handle=None, dcTuple=None, box=None):
+def getBmp(box=None, handle=None, dcTuple=None):
 
     if handle is None:
         handle = getHandle()
     if dcTuple is None:
         localDC = True
         dcTuple = getDc(handle)
+    else:
+        localDC = False
     left, up, right, down = box if box else wgui.GetWindowRect(handle)
     height, width = down - up, right - left
     size = width, height
@@ -62,52 +64,33 @@ def saveBmp(handle=None, fileName="{}.bmp".format(time())):
     if handle is None:
         handle = getHandle()
     dcTuple = getDc(handle)
-    bmp = getBmp(handle)
+    bmp = getBmp(None, handle)
 
     bmp.SaveBitmapFile(dcTuple[2], fileName)
     dropDc(handle, dcTuple)
     return fileName
 
 
-# gets rgb codes of the pixel given
-def getPixel(x, y, handle=None):
-    if handle is None:
-        handle = getHandle()
-    winDC = wgui.GetDC(handle)
-
-    color = wgui.GetPixel(winDC, x, y)
-    wgui.ReleaseDC(handle, winDC)
-
-    rgb = getRgb(color)
-    return rgb
-
-
 def getBox(handle=None, name=None, relative=False):
-    if not handle:
+    if handle is None:
         handle = getHandle(name)
-    wgui.SetForegroundWindow(handle)
     if relative:
-        return wgui.GetClientRect(handle)
+        box = wgui.GetClientRect(handle)
     else:
-        return wgui.GetWindowRect(handle)
+        box = wgui.GetWindowRect(handle)
+    return box
 
 
-def getCv(bmp=False, color=False, box=None, name=None):
+def getCv(bmp=False, color=0, box=None):
     if bmp is False:
-        if box:
-            bmp = getBmp(None, None, box)
-        elif name:
-            bmp = getBmp(None, None, None, name)
-        else:
-            bmp = getBmp()
+        bmp = getBmp(box) if box else getBmp()
 
+    formats = {0: cv.COLOR_RGB2GRAY, 1: cv.COLOR_RGB2BGR, 2: cv.COLOR_RGB2HSV}
     width, height = bmp.GetInfo()['bmWidth'], bmp.GetInfo()['bmHeight']
     size = width, height
     str = bmpString(bmp)
     im = frombuffer('RGB', size, str, 'raw', 'BGRX', 0, 1)
-    img = cv.cvtColor(np.array(im), cv.COLOR_RGB2BGR)
-    if color is False:
-        img = cv.cvtColor(img, cv.COLOR_BGR2GRAY)
+    img = cv.cvtColor(np.array(im), formats[color])
     return img
 
 
@@ -118,37 +101,43 @@ def dropDc(handle, dcTuple):
     return True
 
 
-def show(img):
-    cv.imshow("Bot img", img)
-    cv.waitKey(3000)
+def show(img, title='Bot Img', secs=3):
+    cv.imshow(title, img)
+    cv.waitKey(secs * 1000)
     cv.destroyAllWindows()
     return True
 
 
-def match(img, template):
+def match(img, template, threshold=0.7):
     w, h = template.shape[::-1]
-    res = cv.matchTemplate(img, template, cv.TM_CCOEFF_NORMED)
 
-    _, _, _, res = cv.minMaxLoc(res)
-    box = (res[0], res[1], res[0] + w, res[1] + h)
-    point = (box[0] + (w / 2), box[1] + (h / 2))
+    res = cv.matchTemplate(img, template, cv.TM_CCOEFF_NORMED)
+    _, maxVal, _, maxLoc = cv.minMaxLoc(res)
+
+    if maxVal >= threshold:
+        point = (maxLoc[0] + (w / 2), maxLoc[1] + (h / 2))
+        box = (maxLoc[0], maxLoc[1], maxLoc[0] + w, maxLoc[1] + h)
+    else:
+        point, box = None, None
     return point, box
 
 
-def matchAll(img, template, threshold=0.8):
+def matchAll(img, template, threshold=0.7):
     w, h = template.shape[::-1]
     res = cv.matchTemplate(img, template, cv.TM_CCOEFF_NORMED)
     loc = np.where(res >= threshold)
     res = []
     for pt in zip(*loc[::-1]):
-        res.append(pt)
+        if (res[-1][0] - 10 > pt[0] > res[-1][0] + 10):
+            print "sdadas"
+        res.append((pt[0] + w / 2, pt[1] + h / 2))
     return res
 
 
-def draw(img, box):
+def draw(img, box, width=4):
     if len(box) == 2:  # point
-        box = box[0], box[1], box[0] + 2, box[1] + 2
-    cv.rectangle(img, (box[0], box[1]), (box[2], box[3]), 255, 4)
+        box = box[0] - 5, box[1] - 5, box[0] + 5, box[1] + 5
+    cv.rectangle(img, (box[0], box[1]), (box[2], box[3]), 255, width)
     return img
 
 
@@ -162,26 +151,25 @@ def threshold(img, block=11, C=2):
     return result
 
 
-def reduce(img):
+def maskColor(img, mode=0, color=0):
 
-    # __Slow as fuck:__
-    # from scipy.cluster.vq import kmeans, vq
-    # pixel = np.reshape(img, (img.shape[0] * img.shape[1], 3))
-    # centroids, _ = kmeans(pixel, 6)  # six colors will be found
-    # qnt, _ = vq(pixel, centroids)
-    # centersIdx = np.reshape(qnt, (img.shape[0], img.shape[1]))
-    # clustered = centroids[centersIdx]
-    # img = np.flipud(clustered)
-    #     Z = img.reshape((-1, 3))
-    # Z = np.float32(Z)
-    # C = (cv.TERM_CRITERIA_EPS + cv.TERM_CRITERIA_MAX_ITER, 10, 1.0)
-    # K = 2
-    # ret, lbl, cent = cv.kmeans(Z, K, None, C, 10, cv.KMEANS_RANDOM_CENTERS)
-    # cent = np.uint8(cent)
-    # res = cent[lbl.flatten()]
-    # res2 = res.reshape((img.shape))
+    # ranges of color in HSV
+    # 0 = info, 1 = pure white
+    bound = {
+        0: (np.array([8, 90, 100]), np.array([56, 255, 255])),
+        1: (np.array([0, 0, 254]), np.array([1, 1, 255]))
+    }
+    if color >= 0:
+        space = {0: cv.COLOR_BGR2HSV, 1: cv.COLOR_RGB2HSV}
+        # Convert BGR to HSV
+        img = cv.cvtColor(img, space[color])
 
-    return True
+    lower = bound[mode][0]
+    upper = bound[mode][1]
+    mask = cv.inRange(img, lower, upper)  # Threshold to get color
+    # res = cv.bitwise_and(img, img, mask=mask) # mask and original image
+
+    return mask
 
 
 # Misc functions
@@ -193,9 +181,17 @@ def bmpTuple(bmp):
     return bmp.GetBitmapBits(False)
 
 
-def getRgb(long):  # gets the rgb code from a long formatted number
-    r, g, b = long & 255, (long >> 8) & 255, (long >> 16) & 255
+def getRgb(rgbInt):  # gets the rgb code from a rgbInt formatted number
+    r, g, b = rgbInt & 255, (rgbInt >> 8) & 255, (rgbInt >> 16) & 255
     return int(r), int(g), int(b)
+
+
+def getRgbInt(rgb):
+    red = rgb[0]
+    green = rgb[1]
+    blue = rgb[2]
+    RGBint = (red << 16) + (green << 8) + blue
+    return RGBint
 
 
 def winList(showImg=False):
@@ -220,7 +216,7 @@ def winChilds(handle, img=False):
             print handle, wgui.GetWindowText(handle)
             if img:
                 try:
-                    imgs = getCv(getBmp(handle), True)
+                    imgs = getCv(getBmp(None, handle), True)
                     showImg(imgs)
                 except Exception, e:
                     print e
@@ -232,7 +228,8 @@ def winChilds(handle, img=False):
 
 
 if __name__ == '__main__':
-
+    example = cv.imread('Examples/buff.png')
+    maskColor(example)
     pass
     '''
 
