@@ -22,7 +22,7 @@ def leftUp(delay=.05):
 
 
 def mousePos(coord):
-    win32api.SetCursorPos((xPad + coord[0], yPad + coord[1]))
+    win32api.SetCursorPos((coord[0], coord[1]))
 
 
 # ** Info **
@@ -30,8 +30,3 @@ def mousePos(coord):
 # optionally recieves a box for giving relative position
 def getMouse(box=None):
     x, y = win32api.GetCursorPos()
-    if box is not None:
-        x -= box[0]
-        y -= box[1]
-
-    print x, y
