@@ -1,12 +1,13 @@
-from time import sleep
+# encoding: utf-8
 
-import Sea
-
-
-# *** Main ***
 def main():
-    print 'Bot start'
-    print 'Bot end'
+    print 'Bot starting'
+    checkDependencies()
+
+    from Vikings import Sea
+    Sea.sail()
+    print 'Bot finished'
+
 def checkDependencies():
     from sys import modules
 
