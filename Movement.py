@@ -1,8 +1,12 @@
-# import os
+# encoding: utf-8
+
 import win32api
 import win32con
 
 from time import sleep
+
+"""Functions to handle mouse and keyboard movements using win32api
+"""
 
 
 def leftClick(delay=.05):

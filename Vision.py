@@ -1,5 +1,5 @@
-# import os
-# import win32api
+# encoding: utf-8
+
 import win32con
 from win32ui import CreateDCFromHandle, CreateBitmap
 import win32gui as wgui
@@ -9,22 +9,19 @@ from Image import frombuffer
 import numpy as np
 import cv2 as cv
 
-# Globals
-# ------------------
+"""Main file to control image capture from desktop """
 
-# defaultWin = "Nox App Player"
-defaultWin = "Sea.png - Sublime Text (UNREGISTERED)"
+defaultWin = "Nox App Player"
 cv.setUseOptimized(True)
 
-
-# Windows API functions
+"""Windows API functions """
 def getHandle(name=None):
     if name is None:
         return wgui.GetDesktopWindow()  # current window
     return wgui.FindWindow(None, name)
 
 
-# gets a Device Context from given handle, window name xor default window
+"""Gets a Device Context from given handle, window name xor default window """
 def getDc(handle=None, name=None):
     if handle is None:
         handle = getHandle(name)
@@ -37,7 +34,7 @@ def getDc(handle=None, name=None):
     return winContext, devContext, comContext
 
 
-# gets bmp image from device context or handle
+"""gets bmp image from device context or handle """
 def getBmp(box=None, handle=None, dcTuple=None):
 
     if handle is None:
@@ -47,6 +44,7 @@ def getBmp(box=None, handle=None, dcTuple=None):
         dcTuple = getDc(handle)
     else:
         localDC = False
+
     left, up, right, down = box if box else wgui.GetWindowRect(handle)
     height, width = down - up, right - left
     size = width, height
@@ -58,8 +56,7 @@ def getBmp(box=None, handle=None, dcTuple=None):
         dropDc(handle, dcTuple)
     return bmp
 
-
-# saves a bmp file from a dc
+"""saves a bmp file from a dc """
 def saveBmp(handle=None, fileName="{}.bmp".format(time())):
     if handle is None:
         handle = getHandle()
@@ -70,7 +67,7 @@ def saveBmp(handle=None, fileName="{}.bmp".format(time())):
     dropDc(handle, dcTuple)
     return fileName
 
-
+"""Gets bounding box from a handle or a name, relative or absolute """
 def getBox(handle=None, name=None, relative=False):
     if handle is None:
         handle = getHandle(name)
@@ -80,7 +77,7 @@ def getBox(handle=None, name=None, relative=False):
         box = wgui.GetWindowRect(handle)
     return box
 
-
+"""Gets OpenCV image instance """
 def getCv(bmp=False, color=0, box=None):
     if bmp is False:
         bmp = getBmp(box) if box else getBmp()
@@ -93,21 +90,21 @@ def getCv(bmp=False, color=0, box=None):
     img = cv.cvtColor(np.array(im), formats[color])
     return img
 
-
+""" Disposes a Device Context """
 def dropDc(handle, dcTuple):
     dcTuple[2].DeleteDC()
     dcTuple[1].DeleteDC()
     wgui.ReleaseDC(handle, dcTuple[0])
     return True
 
-
+"""Shows a image in the screen """
 def show(img, title='Bot Img', secs=3):
     cv.imshow(title, img)
     cv.waitKey(secs * 1000)
     cv.destroyAllWindows()
     return True
 
-
+"""Compares a image with template and returns point, box if above threshold """
 def match(img, template, threshold=0.7):
     w, h = template.shape[::-1]
 
@@ -121,7 +118,7 @@ def match(img, template, threshold=0.7):
         point, box = None, None
     return point, box
 
-
+"""Returns array of all img matches in screen """
 def matchAll(img, template, threshold=0.7):
     w, h = template.shape[::-1]
     res = cv.matchTemplate(img, template, cv.TM_CCOEFF_NORMED)
@@ -129,28 +126,26 @@ def matchAll(img, template, threshold=0.7):
     res = []
     for pt in zip(*loc[::-1]):
         if (res[-1][0] - 10 > pt[0] > res[-1][0] + 10):
-            print "sdadas"
+            print "testing for matches"
         res.append((pt[0] + w / 2, pt[1] + h / 2))
     return res
 
-
+""" Draws a box in the screen """
 def draw(img, box, width=4):
     if len(box) == 2:  # point
         box = box[0] - 5, box[1] - 5, box[0] + 5, box[1] + 5
     cv.rectangle(img, (box[0], box[1]), (box[2], box[3]), 255, width)
     return img
 
-
+"""Calculate threshold adapted for a image """
 def threshold(img, block=11, C=2):
     blur = cv.medianBlur(img, 5)
     # blur = cv.GaussianBlur(img, (3, 3), 0)
     gauss = cv.ADAPTIVE_THRESH_GAUSSIAN_C
     thresh = cv.THRESH_BINARY
-    result = cv.adaptiveThreshold(blur, 255, gauss, thresh, block, C)
+    return cv.adaptiveThreshold(blur, 255, gauss, thresh, block, C)
 
-    return result
-
-
+"""Converts color information """
 def maskColor(img, mode=0, color=0):
 
     # ranges of color in HSV
@@ -168,7 +163,6 @@ def maskColor(img, mode=0, color=0):
     upper = bound[mode][1]
     mask = cv.inRange(img, lower, upper)  # Threshold to get color
     # res = cv.bitwise_and(img, img, mask=mask) # mask and original image
-
     return mask
 
 

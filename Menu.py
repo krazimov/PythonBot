@@ -1,3 +1,5 @@
+# encoding: utf-8
+
 from time import sleep
 import Vision
 import Movement
@@ -14,37 +16,4 @@ class Ref:
     own = folder + "yieldIcon.png"
     off = folder + "blockIcon.png"
     solo = folder + "adventureBtn.png"
-    pass
-
-
-class Coord:
-
-    pass
-
-
-def toTown():
-    pass
-
-
-def toSea():
-    pass
-
-
-def toLand():
-    pass
-
-
-def toAds():
-    pass
-
-
-def quitAds():
-    pass
-
-
-def quitSea():
-    pass
-
-
-def quitLand():
     pass

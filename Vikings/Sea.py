@@ -1,3 +1,5 @@
+# encoding: utf-8
+
 import sys
 from time import sleep, time
 
@@ -7,7 +9,6 @@ import Movement
 
 class Ref:
     winName = "Nox App Player"
-    # winName = "buff.png - Sublime Text (UNREGISTERED)"
 
     folder  = "Templates/Vikings/Sea/"
     dist = folder + "distanceSea.bmp"
@@ -39,7 +40,9 @@ def sail(winName=None):
     for x in xrange(1, 10):
         Movement.leftUp()
         buff = getBuff(offset(buffBox), rowBtn, Ref.fast)
-        startRow(rowBtn)
+        Movement.leftUp()
+        Movement.mousePos(rowBtn)
+        Movement.leftDown()
         sleep(.8)
         rowTo(offset(barBox), buff)
         Movement.leftUp()
@@ -106,15 +109,6 @@ def getBuff(box, ref, target=None):
     point = offset(point, box)  # Convert back to parent coords
     print("Buff found at {} in {} sec").format(point[0], (time() - start))
     return point
-
-
-def startRow(coords):
-    if coords:
-        Movement.leftUp()
-        Movement.mousePos(coords)
-        Movement.leftDown()
-    return coords
-
 
 def rowTo(box, coords):
     # TODO: Resize
